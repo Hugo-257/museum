@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOTORIUM — The Car Museum</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#000;color:#fff;font-family:'Space Mono',monospace;overflow:hidden;height:100vh;width:100vw}
+
+  #intro{position:fixed;inset:0;z-index:1000;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 1.5s}
+  #intro.hidden{opacity:0;pointer-events:none}
+  #intro h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,10vw,8rem);letter-spacing:.3em;color:#fff;text-shadow:0 0 60px rgba(255,180,50,.3);animation:pulse 3s ease-in-out infinite}
+  #intro .sub{font-size:clamp(.55rem,1.3vw,.85rem);color:#555;letter-spacing:.5em;margin-top:1rem;text-transform:uppercase}
+  #intro button{margin-top:3rem;padding:1rem 3rem;border:1px solid #333;background:0 0;color:#aaa;font-family:'Space Mono',monospace;font-size:.8rem;letter-spacing:.3em;cursor:pointer;transition:.4s;text-transform:uppercase}
+  #intro button:hover{border-color:#ffb432;color:#ffb432;box-shadow:0 0 30px rgba(255,180,50,.15)}
+  @keyframes pulse{0%,100%{opacity:.8}50%{opacity:1}}
+
+  #museum{position:relative;width:100vw;height:100vh;overflow:hidden;display:none}
+  #scene{position:absolute;height:100%;display:flex;transition:transform 1.1s cubic-bezier(.25,.46,.45,.94)}
+  .room{width:100vw;height:100vh;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+  .floor{position:absolute;bottom:0;left:0;right:0;height:32%;background:linear-gradient(to bottom,transparent,rgba(255,255,255,.02) 30%,rgba(255,255,255,.05));border-top:1px solid rgba(255,255,255,.05)}
+  .spotlight{position:absolute;width:300px;height:400px;top:8%;left:50%;transform:translateX(-50%);background:radial-gradient(ellipse,rgba(255,220,150,.06),transparent 70%);pointer-events:none}
+  .room-info{position:absolute;bottom:36%;left:0;right:0;text-align:center;z-index:3;opacity:0;transform:translateY(15px);transition:all .8s ease .3s}
+  .room.active .room-info{opacity:1;transform:translateY(0)}
+  .room-era{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.2rem,5.5vw,4.5rem);letter-spacing:.15em;line-height:1;text-shadow:0 0 40px rgba(255,180,50,.2)}
+  .room-car-name{font-family:'Playfair Display',serif;font-style:italic;font-size:clamp(.9rem,1.8vw,1.4rem);color:#998866;margin-top:.4rem}
+  .room-desc{font-size:clamp(.5rem,.9vw,.7rem);color:#555;max-width:480px;margin:.8rem auto 0;line-height:1.6;letter-spacing:.04em}
+  .plaque{position:absolute;bottom:10%;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);padding:.8rem 1.5rem;text-align:center;z-index:3;opacity:0;transition:opacity .8s ease .8s;min-width:260px}
+  .room.active .plaque{opacity:1}
+  .plaque-title{font-family:'Bebas Neue',sans-serif;font-size:.85rem;letter-spacing:.2em;color:#887755}
+  .plaque-fact{font-size:.6rem;color:#555;margin-top:.3rem;line-height:1.5}
+  .lobby-welcome{font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,7vw,6rem);letter-spacing:.2em;text-align:center;color:#ccaa77;text-shadow:0 0 60px rgba(255,180,50,.15);opacity:0;transition:opacity 1s ease .3s}
+  .room.active .lobby-welcome{opacity:1}
+  .lobby-tagline{font-family:'Playfair Display',serif;font-style:italic;font-size:clamp(.7rem,1.3vw,1rem);color:#665533;margin-top:.5rem;text-align:center;opacity:0;transition:opacity 1s ease .6s}
+  .room.active .lobby-tagline{opacity:1}
+
+  .r-lobby{background:radial-gradient(ellipse at 50% 80%,#1a1510,#0a0a0a 70%)} .r-lobby .room-era{color:#ccaa77}
+  .r0{background:radial-gradient(ellipse at 50% 80%,#1a1a08,#080804 70%)} .r0 .room-era{color:#aa9933}
+  .r1{background:radial-gradient(ellipse at 50% 80%,#2a1a08,#0a0804 70%)} .r1 .room-era{color:#cc8833}
+  .r2{background:radial-gradient(ellipse at 50% 80%,#151515,#080808 70%)} .r2 .room-era{color:#999}
+  .r3{background:radial-gradient(ellipse at 50% 80%,#1a1a1a,#0a0808 70%)} .r3 .room-era{color:#cc4444}
+  .r4{background:radial-gradient(ellipse at 50% 80%,#0d2a0d,#040a04 70%)} .r4 .room-era{color:#44aa44}
+  .r5{background:radial-gradient(ellipse at 50% 80%,#2a2a05,#0a0a02 70%)} .r5 .room-era{color:#ccaa00}
+  .r6{background:radial-gradient(ellipse at 50% 80%,#0a1a3a,#04080f 70%)} .r6 .room-era{color:#4488cc}
+  .r7{background:radial-gradient(ellipse at 50% 80%,#1a1008,#0a0804 70%)} .r7 .room-era{color:#dd8833}
+  .r8{background:radial-gradient(ellipse at 50% 80%,#2a0a2a,#0a040a 70%)} .r8 .room-era{color:#bb44bb}
+  .r9{background:radial-gradient(ellipse at 50% 80%,#0a2a2a,#040a0a 70%)} .r9 .room-era{color:#44cccc}
+
+  /* ── CAR IMAGE PLACEHOLDER ── */
+  .car-img-wrap{
+    position:relative;z-index:2;
+    margin-bottom:5vh;
+    opacity:0;transform:translateY(20px);
+    transition:all 1s ease .4s;
+  }
+  .room.active .car-img-wrap{opacity:1;transform:translateY(-120px)}
+
+  .car-img-wrap img{
+    max-width:clamp(260px,42vw,550px);
+    max-height:clamp(160px,28vh,330px);
+    object-fit:contain;
+    display:block;
+    filter:drop-shadow(0 0 30px rgba(255,180,50,.15));
+  }
+
+  /* Placeholder shown when image not loaded */
+  .car-placeholder{
+    width:clamp(260px,42vw,550px);
+    height:clamp(160px,28vh,330px);
+    border:2px dashed rgba(255,255,255,.15);
+    border-radius:12px;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    gap:8px;
+    background:rgba(255,255,255,.02);
+    transition:border-color .3s;
+  }
+  .car-placeholder .ph-icon{font-size:2rem;opacity:.3}
+  .car-placeholder .ph-name{
+    font-family:'Space Mono',monospace;
+    font-size:clamp(.45rem,.8vw,.65rem);
+    color:rgba(255,255,255,.2);
+    letter-spacing:.1em;text-transform:uppercase;
+    text-align:center;padding:0 1rem;
+    line-height:1.4;
+  }
+  .car-placeholder .ph-file{
+    font-size:clamp(.35rem,.6vw,.5rem);
+    color:rgba(255,180,50,.25);
+    letter-spacing:.05em;
+  }
+
+  /* Hide placeholder when image loads */
+  .car-img-wrap img.loaded+.car-placeholder{display:none}
+  .car-img-wrap img.loaded{display:block}
+  .car-img-wrap img:not(.loaded){display:none}
+
+  /* ── WALKER ── */
+  #walker{position:fixed;bottom:18%;z-index:100;transition:left 1.1s cubic-bezier(.25,.46,.45,.94);filter:drop-shadow(0 0 10px rgba(255,180,50,.3))}
+  .walker-body{position:relative;width:24px;height:58px}
+  .wh{width:14px;height:14px;background:#ddd;border-radius:50%;margin:0 auto}
+  .wt{width:16px;height:20px;background:#888;margin:2px auto 0;border-radius:3px 3px 0 0}
+  .wl-wrap{display:flex;justify-content:center;gap:4px;margin-top:1px}
+  .wl{width:5px;height:18px;background:#666;border-radius:0 0 2px 2px}
+  #walker.walking .wl:first-child{animation:lL .4s ease-in-out infinite}
+  #walker.walking .wl:last-child{animation:lR .4s ease-in-out infinite}
+  @keyframes lL{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(15deg)}}
+  @keyframes lR{0%,100%{transform:rotate(15deg)}50%{transform:rotate(-15deg)}}
+  #walker.flip .walker-body{transform:scaleX(-1)}
+
+  /* ═══ FLOOR PLAN MINIMAP ═══ */
+  #minimap{position:fixed;top:10px;right:10px;z-index:600;width:280px;background:rgba(8,6,4,.92);border:1px solid rgba(255,220,150,.12);border-radius:8px;overflow:hidden;box-shadow:0 6px 40px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,220,150,.05);backdrop-filter:blur(12px)}
+  #map-header{display:flex;align-items:center;justify-content:space-between;padding:6px 10px 5px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(255,220,150,.03)}
+  #map-title{font-family:'Bebas Neue',sans-serif;font-size:.65rem;letter-spacing:.25em;color:#887755;text-transform:uppercase}
+  #map-current{font-family:'Space Mono',monospace;font-size:.42rem;color:#ffb432;letter-spacing:.08em}
+  #map-svg-wrap{padding:6px 8px 8px;position:relative}
+  .map-room-shape{fill:rgba(255,255,255,.03);stroke:rgba(255,255,255,.1);stroke-width:1.2;cursor:pointer;transition:all .3s ease}
+  .map-room-shape:hover{fill:rgba(255,180,50,.08);stroke:rgba(255,180,50,.35)}
+  .map-room-shape.active{fill:rgba(255,180,50,.12);stroke:rgba(255,180,50,.6);stroke-width:1.8}
+  .map-room-shape.visited{fill:rgba(255,180,50,.04)}
+  .map-corridor{fill:rgba(255,255,255,.015);stroke:rgba(255,255,255,.05);stroke-width:.8}
+  .map-label{font-family:'Space Mono',monospace;font-size:3.2px;fill:#555;text-anchor:middle;pointer-events:none;text-transform:uppercase;letter-spacing:.3px}
+  .map-label.active-label{fill:#cc9944}
+  .map-icon{font-size:6px;text-anchor:middle;pointer-events:none}
+  .map-wing-label{font-family:'Bebas Neue',sans-serif;font-size:4px;fill:rgba(255,255,255,.12);text-anchor:middle;letter-spacing:1.5px;pointer-events:none}
+  .map-wall{stroke:rgba(255,255,255,.15);stroke-width:1.5;fill:none}
+  .map-door{stroke:rgba(255,180,50,.2);stroke-width:1;stroke-dasharray:2 1.5;fill:none}
+  .map-room-shape.active .map-icon{animation:mapBlink 1.5s ease-in-out infinite}
+  @keyframes mapBlink{0%,100%{opacity:1}50%{opacity:.5}}
+  .map-room-shape.active::before{content:''}
+  .entrance-arrow{fill:rgba(255,180,50,.3);animation:ep 2s ease-in-out infinite}
+  @keyframes ep{0%,100%{opacity:.3}50%{opacity:.7}}
+
+  #nav{position:fixed;bottom:3%;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:2rem;font-size:.6rem;color:#444;letter-spacing:.15em;text-transform:uppercase}
+  .nb{padding:.5rem 1rem;border:1px solid #222;cursor:pointer;transition:.3s;user-select:none}
+  .nb:hover{border-color:#ffb432;color:#ffb432}
+  .dust{position:absolute;width:2px;height:2px;background:rgba(255,220,150,.3);border-radius:50%;pointer-events:none;animation:df linear infinite}
+  @keyframes df{0%{transform:translateY(0) translateX(0);opacity:0}10%{opacity:.5}90%{opacity:.3}100%{transform:translateY(-100vh) translateX(50px);opacity:0}}
+  .ambient{position:absolute;top:0;left:50%;transform:translateX(-50%);width:60%;height:3px;background:linear-gradient(90deg,transparent,rgba(255,200,100,.1),transparent);animation:flk 4s ease-in-out infinite}
+  @keyframes flk{0%,100%{opacity:.3}50%{opacity:.8}}
+  #overlay{position:fixed;inset:0;background:#000;z-index:500;opacity:0;pointer-events:none;transition:opacity .4s}
+  #overlay.flash{opacity:.6}
+  .touch-l,.touch-r{position:fixed;top:0;bottom:80px;width:25%;z-index:150;cursor:pointer}
+  .touch-l{left:0}.touch-r{right:0}
+</style>
+</head>
+<body>
+<div id="intro">
+  <h1>MOTORIUM</h1>
+  <div class="sub">A Journey Through Automotive History</div>
+  <button onclick="start()">Enter the Museum</button>
+</div>
+
+<div id="museum">
+  <div id="overlay"></div>
+
+  <!-- MINIMAP -->
+  <div id="minimap">
+    <div id="map-header"><div id="map-title">Floor Plan</div><div id="map-current">LOBBY</div></div>
+    <div id="map-svg-wrap">
+      <svg id="map-svg" viewBox="0 0 130 95" xmlns="http://www.w3.org/2000/svg">
+        <path class="map-wall" d="M5,42 L5,5 L125,5 L125,42 L95,42 L95,90 L35,90 L35,42 Z"/>
+        <text x="38" y="3" class="map-wing-label">WING 1 — THE ORIGINS</text>
+        <text x="95" y="3" class="map-wing-label">WING 2</text>
+        <text x="65" y="88" class="map-wing-label">DEEP DIVE &amp; FUTURE</text>
+        <rect class="map-corridor" x="28" y="20" width="4" height="22" rx="0.5"/>
+        <rect class="map-corridor" x="55" y="20" width="4" height="22" rx="0.5"/>
+        <rect class="map-corridor" x="80" y="20" width="4" height="22" rx="0.5"/>
+        <rect class="map-corridor" x="55" y="42" width="4" height="10" rx="0.5"/>
+        <rect class="map-corridor" x="80" y="42" width="4" height="10" rx="0.5"/>
+        <rect class="map-corridor" x="55" y="67" width="4" height="8" rx="0.5"/>
+        <line class="map-door" x1="29" y1="42" x2="33" y2="42"/>
+        <line class="map-door" x1="56" y1="42" x2="60" y2="42"/>
+        <line class="map-door" x1="81" y1="42" x2="85" y2="42"/>
+        <line class="map-door" x1="56" y1="52" x2="60" y2="52"/>
+        <line class="map-door" x1="81" y1="52" x2="85" y2="52"/>
+        <polygon class="map-room-shape active" id="mr0" onclick="goTo(0)" points="35,42 55,42 55,52 80,52 80,42 95,42 95,75 80,75 80,65 55,65 55,75 35,75"/>
+        <text x="65" y="56" class="map-icon">🏛</text><text x="65" y="61.5" class="map-label" id="ml0">LOBBY</text>
+        <rect class="map-room-shape" id="mr1" onclick="goTo(1)" x="5" y="5" width="23" height="18" rx="1"/>
+        <text x="16.5" y="14" class="map-icon">🐴</text><text x="16.5" y="19.5" class="map-label" id="ml1">1886</text>
+        <polygon class="map-room-shape" id="mr2" onclick="goTo(2)" points="32,5 55,5 55,20 52,24 32,24 32,20"/>
+        <text x="43" y="14" class="map-icon">🚗</text><text x="43" y="19.5" class="map-label" id="ml2">1908</text>
+        <polygon class="map-room-shape" id="mr3" onclick="goTo(3)" points="59,5 80,5 80,18 77,24 62,24 59,18"/>
+        <text x="69.5" y="14" class="map-icon">🪲</text><text x="69.5" y="19.5" class="map-label" id="ml3">1938</text>
+        <polygon class="map-room-shape" id="mr4" onclick="goTo(4)" points="84,5 125,5 125,20 120,24 84,24"/>
+        <text x="104" y="14" class="map-icon">🔴</text><text x="104" y="19.5" class="map-label" id="ml4">1954</text>
+        <polygon class="map-room-shape" id="mr5" onclick="goTo(5)" points="5,25 28,25 28,42 22,42 5,42"/>
+        <text x="15" y="33.5" class="map-icon">🏎</text><text x="15" y="39" class="map-label" id="ml5">1964</text>
+        <polygon class="map-room-shape" id="mr6" onclick="goTo(6)" points="84,25 125,25 125,42 98,42 84,38"/>
+        <text x="104" y="33.5" class="map-icon">🟡</text><text x="104" y="39" class="map-label" id="ml6">1974</text>
+        <polygon class="map-room-shape" id="mr7" onclick="goTo(7)" points="84,52 95,52 95,75 84,75 84,65"/>
+        <text x="89.5" y="63" class="map-icon">🚙</text><text x="89.5" y="68.5" class="map-label" id="ml7">1981</text>
+        <polygon class="map-room-shape" id="mr8" onclick="goTo(8)" points="35,75 55,75 55,90 35,90"/>
+        <text x="45" y="82" class="map-icon">🏁</text><text x="45" y="87" class="map-label" id="ml8">McLAREN</text>
+        <polygon class="map-room-shape" id="mr9" onclick="goTo(9)" points="59,67 80,67 80,90 59,90"/>
+        <text x="69.5" y="78" class="map-icon">⚡</text><text x="69.5" y="83.5" class="map-label" id="ml9">2008</text>
+        <polygon class="map-room-shape" id="mr10" onclick="goTo(10)" points="84,75 95,75 95,90 84,90"/>
+        <text x="89.5" y="82" class="map-icon">🛸</text><text x="89.5" y="87" class="map-label" id="ml10">2050</text>
+        <polygon class="entrance-arrow" points="63,93 67,93 65,96"/>
+        <text x="65" y="94.5" style="font-family:'Space Mono';font-size:2.2px;fill:rgba(255,180,50,.4);text-anchor:middle;pointer-events:none">ENTRANCE</text>
+        <circle id="map-dot-glow" cx="65" cy="58" r="4" fill="rgba(255,180,50,.15)"><animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values=".3;.1;.3" dur="2s" repeatCount="indefinite"/></circle>
+        <circle id="map-dot" cx="65" cy="58" r="2" fill="#ffb432"><animate attributeName="r" values="1.8;2.5;1.8" dur="2s" repeatCount="indefinite"/></circle>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ═══ ROOMS ═══ -->
+  <div id="scene">
+
+    <!-- 0: LOBBY -->
+    <div class="room r-lobby active">
+      <div class="ambient"></div><div class="spotlight"></div>
+      <div class="lobby-welcome">MOTORIUM</div>
+      <div class="lobby-tagline">"Where machines become memories"</div>
+      <div class="plaque"><div class="plaque-title">Welcome, Visitor</div><div class="plaque-fact">10 rooms — 160 years of automotive history<br>Use the floor plan, arrows, or keyboard to navigate</div></div>
+      <div class="floor"></div>
+    </div>
+
+    <!-- 1: BENZ 1886 -->
+    <div class="room r0">
+      <div class="ambient"></div><div class="spotlight"></div>
+      <div class="car-img-wrap">
+        <img src="benz-1886.png" alt="Benz Patent-Motorwagen" onload="this.classList.add('loaded')" onerror="">
+        <div class="car-placeholder">
+          <div class="ph-icon">🐴</div>
+          <div class="ph-name">Benz Patent-Motorwagen</div>
+          <div class="ph-file">placeholder_for_benz_1886.png</div>
+        </div>
+      </div>
+      <div class="room-info"><div class="room-era">1886</div><div class="room-car-name">Benz Patent-Motorwagen</div><div class="room-desc">The very first automobile. Three wheels, 0.75 horsepower, and a top speed of 16 km/h. Karl Benz's wife Bertha secretly drove it 106 km to prove it worked — the first road trip in history.</div></div>
+      <div class="plaque"><div class="plaque-title">Room I — The Origin</div><div class="plaque-fact">0.75 HP single-cylinder engine • First road trip: 106 km<br>Bertha Benz funded and promoted the invention</div></div>
+      <div class="floor"></div>
+    </div>
+
+    <!-- 2: MODEL T 1908 -->
+    <div class="room r1">
+      <div class="ambient"></div><div class="spotlight"></div>
+      <div class="car-img-wrap">
+        <img src="ford-model-t.png" alt="Ford Model T" onload="this.classList.add('loaded')" onerror="">
+        <div class="car-placeholder">
+          <div class="ph-icon">🚗</div>
+          <div class="ph-name">Ford Model T</div>
+          <div class="ph-file">placeholder_for_ford_model_t.png</div>
+        </div>
+      </div>
+      <div class="room-info"><div class="room-era">1908</div><div class="room-car-name">Ford Model T</div><div class="room-desc">The car that put the world on wheels. $825 in 1908 — by 1925, just $260. Henry Ford didn't invent the car. He invented the idea that everyone deserves one.</div></div>
+      <div class="plaque"><div class="plaque-title">Room II — Democratization</div><div class="plaque-fact">15 million produced • Assembly line revolution<br>Top speed: 72 km/h • Any color, as long as it's black</div></div>
+      <div class="floor"></div>
+    </div>
+
+    <!-- 3: VW BEETLE 1938 -->
+    <div class="room r2">
+      <div class="ambient"></div><div class="spotlight"></div>
+      <div class="car-img-wrap">
+        <img src="vw-beetle.png" alt="Volkswagen Beetle" onload="this.classList.add('loaded')" onerror="">
+        <div class="car-placeholder">
+          <div class="ph-icon">🪲</div>
+          <div class="ph-name">Volkswagen Beetle</div>
+          <div class="ph-file">placeholder_for_vw_beetle.png</div>
+        </div>
+      </div>
+      <div class="room-info"><div class="room-era">1938</div><div class="room-car-name">Volkswagen Beetle</div><div class="room-desc">Born from dark origins, reborn as a symbol of peace and love. The "People's Car" became the best-selling car in history. From post-war Germany to 1960s California — a cultural chameleon.</div></div>
+      <div class="plaque"><div class="plaque-title">Room III — The People's Car</div><div class="plaque-fact">21.5 million produced • Air-cooled rear engine<br>Symbol of the counterculture • Herbie the Love Bug</div></div>
+      <div class="floor"></div>
+    </div>
+
+    <!-- 4: MERCEDES 300SL 1954 -->
+    <div class="room r3">
+      <div class="ambient"></div><div class="spotlight"></div>
+      <div class="car-img-wrap">
+        <img src="benz-300sl.png" alt="Mercedes-Benz 300SL" onload="this.classList.add('loaded')" onerror="">
+        <div class="car-placeholder">
+          <div class="ph-icon">🔴</div>
+          <div class="ph-name">Mercedes-Benz 300SL</div>
+          <div class="ph-file">placeholder_for_mercedes_300sl.png</div>
+        </div>
+      </div>
+      <div class="room-info"><div class="room-era">1954</div><div class="room-car-name">Mercedes-Benz 300SL</div><div class="room-desc">The Gullwing. Doors that open to the sky. The world's first production fuel-injected car and the fastest of its era. Engineering poetry wrapped in German steel.</div></div>
+      <div class="plaque"><div class="plaque-title">Room IV — The Gullwing</div><div class="plaque-fact">1,400 coupés built • 260 km/h top speed<br>First production fuel injection • Iconic gullwing doors</div></div>
+      <div class="floor"></div>
+    </div>
+
+    <!-- 5: MUSTANG 1964 -->
+    <div class="room r4">
+      <div class="ambient"></div><div class="spotlight"></div>
+      <div class="car-img-wrap">
+        <img src="ford-mustang.png" alt="Ford Mustang" onload="this.classList.add('loaded')" onerror="">
+        <div class="car-placeholder">
+          <div class="ph-icon">🏎</div>
+          <div class="ph-name">Ford Mustang</div>
+          <div class="ph-file">placeholder_for_ford_mustang.png</div>
+        </div>
+      </div>
+      <div class="room-info"><div class="room-era">1964</div><div class="room-car-name">Ford Mustang</div><div class="room-desc">Freedom, rebellion, and 271 horsepower. The Mustang wasn't just a car — it was a cultural earthquake. It created the "pony car" category overnight and sold 22,000 on day one.</div></div>
+      <div class="plaque"><div class="plaque-title">Room V — The Rebel</div><div class="plaque-fact">22,000 sold on day one • Steve McQueen's Bullitt<br>Created the muscle car era • Still in production today</div></div>
+      <div class="floor"></div>
+    </div>
+
+    <!-- 6: COUNTACH 1974 -->
+    <div class="room r5">
+      <div class="ambient"></div><div class="spotlight"></div>
+      <div class="car-img-wrap">
+        <img src="lambo-countach.png" alt="Lamborghini Countach" onload="this.classList.add('loaded')" onerror="">
+        <div class="car-placeholder">
+          <div class="ph-icon">🟡</div>
+          <div class="ph-name">Lamborghini Countach</div>
+          <div class="ph-file">placeholder_for_lamborghini_countach.png</div>
+        </div>
+      </div>
+      <div class="room-info"><div class="room-era">1974</div><div class="room-car-name">Lamborghini Countach</div><div class="room-desc">The poster on every teenager's bedroom wall. Marcello Gandini drew the future in straight lines. Scissor doors, wedge shape, and pure automotive theater.</div></div>
+      <div class="plaque"><div class="plaque-title">Room VI — The Poster Car</div><div class="plaque-fact">1,983 built total • Scissor doors pioneer<br>V12 engine • 0-100 in 5.4s • The shape of dreams</div></div>
+      <div class="floor"></div>
+    </div>
+
+    <!-- 7: DELOREAN 1981 -->
+    <div class="room r6">
+      <div class="ambient"></div><div class="spotlight"></div>
+      <div class="car-img-wrap">
+        <img src="delorean.png" alt="DeLorean DMC-12" onload="this.classList.add('loaded')" onerror="">
+        <div class="car-placeholder">
+          <div class="ph-icon">🚙</div>
+          <div class="ph-name">DeLorean DMC-12</div>
+          <div class="ph-file">placeholder_for_delorean.png</div>
+        </div>
+      </div>
+      <div class="room-info"><div class="room-era">1981</div><div class="room-car-name">DeLorean DMC-12</div><div class="room-desc">Stainless steel. Gull-wing doors. A spectacular commercial failure that became immortal through cinema. Proof that legends don't need to be successful — they need to be unforgettable.</div></div>
+      <div class="plaque"><div class="plaque-title">Room VII — The Time Machine</div><div class="plaque-fact">Only 9,000 built • Designed by Giorgetto Giugiaro<br>Star of Back to the Future • Unpainted steel body</div></div>
+      <div class="floor"></div>
+    </div>
+
+    <!-- 8: MCLAREN F1 1992 -->
+    <div class="room r7">
+      <div class="ambient"></div><div class="spotlight"></div>
+      <div class="car-img-wrap">
+        <img src="mclaren.png" alt="McLaren F1" onload="this.classList.add('loaded')" onerror="">
+        <div class="car-placeholder">
+          <div class="ph-icon">🏁</div>
+          <div class="ph-name">McLaren F1</div>
+          <div class="ph-file">placeholder_for_mclaren_f1.png</div>
+        </div>
+      </div>
+      <div class="room-info"><div class="room-era">1992</div><div class="room-car-name">McLaren F1</div><div class="room-desc">The greatest car ever built. Central driving position. Gold-lined engine bay. No traction control, no ABS — just a BMW V12 and your courage. Held the speed record for over a decade.</div></div>
+      <div class="plaque"><div class="plaque-title">Room VIII — Engineering Perfection</div><div class="plaque-fact">106 built • 386 km/h world record<br>Gold-lined engine bay • Central driver seat • $20M+ today</div></div>
+      <div class="floor"></div>
+    </div>
+
+    <!-- 9: TESLA ROADSTER 2008 -->
+    <div class="room r8">
+      <div class="ambient"></div><div class="spotlight"></div>
+      <div class="car-img-wrap">
+        <img src="tesla_roadster.png" alt="Tesla Roadster" onload="this.classList.add('loaded')" onerror="">
+        <div class="car-placeholder">
+          <div class="ph-icon">⚡</div>
+          <div class="ph-name">Tesla Roadster</div>
+          <div class="ph-file">placeholder_for_tesla_roadster.png</div>
+        </div>
+      </div>
+      <div class="room-info"><div class="room-era">2008</div><div class="room-car-name">Tesla Roadster</div><div class="room-desc">The car that shouldn't have existed. A Silicon Valley startup challenged a century-old industry. Zero emissions, zero compromise. The beginning of the electric revolution.</div></div>
+      <div class="plaque"><div class="plaque-title">Room IX — The Revolution</div><div class="plaque-fact">0-100 km/h in 3.7s • 394 km range<br>2,450 produced • One is floating in space</div></div>
+      <div class="floor"></div>
+    </div>
+
+    <!-- 10: FUTURE 2050 -->
+    <div class="room r9">
+      <div class="ambient"></div><div class="spotlight"></div>
+      <div class="car-img-wrap">
+        <img src="futuristic.png" alt="The Future" onload="this.classList.add('loaded')" onerror="">
+        <div class="car-placeholder">
+          <div class="ph-icon">🛸</div>
+          <div class="ph-name">The Future — 2050</div>
+          <div class="ph-file">placeholder_for_future_car.png</div>
+        </div>
+      </div>
+      <div class="room-info"><div class="room-era">2050?</div><div class="room-car-name">The Unknown</div><div class="room-desc">Will we still call them cars? Autonomous. Flying. Shared. Or maybe gone entirely. This room is empty because the future hasn't been written yet. Perhaps you'll write it.</div></div>
+      <div class="plaque"><div class="plaque-title">Room X — The Horizon</div><div class="plaque-fact">Autonomous driving • Flying vehicles • Hyperloop<br>The road ahead is unwritten</div></div>
+      <div class="floor"></div>
+    </div>
+
+  </div>
+
+  <div id="walker"><div class="walker-body"><div class="wh"></div><div class="wt"></div><div class="wl-wrap"><div class="wl"></div><div class="wl"></div></div></div></div>
+  <div id="nav"><div class="nb" onclick="nav(-1)">← PREV</div><span id="room-label">LOBBY</span><div class="nb" onclick="nav(1)">NEXT →</div></div>
+  <div class="touch-l" onclick="nav(-1)"></div>
+  <div class="touch-r" onclick="nav(1)"></div>
+</div>
+
+<script>
+let cur=0;const tot=11;let busy=false;
+const visited=new Set([0]);
+const names=['LOBBY','1886 — BENZ','1908 — MODEL T','1938 — BEETLE','1954 — 300SL','1964 — MUSTANG','1974 — COUNTACH','1981 — DELOREAN','1992 — McLAREN F1','2008 — TESLA','2050 — FUTURE'];
+const dotPos=[[65,58],[16.5,13],[43,13],[69.5,13],[104,13],[15,33],[104,33],[89.5,62],[45,81],[69.5,77],[89.5,81]];
+
+function start(){
+  document.getElementById('intro').classList.add('hidden');
+  document.getElementById('museum').style.display='block';
+  document.getElementById('walker').style.left='45%';
+  dust();updateMap(0);
+  setTimeout(()=>{document.getElementById('intro').style.display='none'},1500);
+}
+function updateMap(i){
+  visited.add(i);
+  for(let j=0;j<tot;j++){
+    const el=document.getElementById('mr'+j),lb=document.getElementById('ml'+j);
+    el.classList.toggle('active',j===i);
+    if(visited.has(j))el.classList.add('visited');
+    lb.classList.toggle('active-label',j===i);
+  }
+  document.getElementById('map-current').textContent=names[i];
+  const dot=document.getElementById('map-dot'),glow=document.getElementById('map-dot-glow');
+  dot.setAttribute('cx',dotPos[i][0]);dot.setAttribute('cy',dotPos[i][1]);
+  glow.setAttribute('cx',dotPos[i][0]);glow.setAttribute('cy',dotPos[i][1]);
+}
+function goTo(t){
+  if(busy||t===cur||t<0||t>=tot)return;
+  const dir=t>cur?1:-1;busy=true;
+  const w=document.getElementById('walker'),s=document.getElementById('scene'),o=document.getElementById('overlay');
+  document.querySelectorAll('.room')[cur].classList.remove('active');
+  if(dir>0)w.classList.remove('flip');else w.classList.add('flip');
+  w.classList.add('walking');w.style.left=dir>0?'75%':'15%';
+  updateMap(t);
+  setTimeout(()=>{o.classList.add('flash')},450);
+  setTimeout(()=>{
+    cur=t;s.style.transform=`translateX(-${cur*100}vw)`;
+    w.style.transition='none';w.style.left=dir>0?'15%':'75%';
+    setTimeout(()=>{w.style.transition='left 1.1s cubic-bezier(.25,.46,.45,.94)';w.style.left='45%';o.classList.remove('flash')},50);
+    document.querySelectorAll('.room')[cur].classList.add('active');
+    document.getElementById('room-label').textContent=names[cur];
+    setTimeout(()=>{w.classList.remove('walking');busy=false},1100);
+  },750);
+}
+function nav(d){goTo(cur+d)}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='d')nav(1);if(e.key==='ArrowLeft'||e.key==='a')nav(-1)});
+let tx=0;
+document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX},{passive:true});
+document.addEventListener('touchend',e=>{const d=tx-e.changedTouches[0].clientX;if(Math.abs(d)>50)nav(d>0?1:-1)},{passive:true});
+function dust(){document.querySelectorAll('.room').forEach(r=>{for(let i=0;i<6;i++){const d=document.createElement('div');d.className='dust';d.style.left=Math.random()*100+'%';d.style.bottom='-5px';d.style.animationDuration=(6+Math.random()*8)+'s';d.style.animationDelay=Math.random()*10+'s';r.appendChild(d)}})}
+</script>
+</body>
+</html>
